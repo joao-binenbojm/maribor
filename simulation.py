@@ -89,64 +89,73 @@ def exponent(x, a, b):
 
 if __name__ == '__main__':
     
-    ## Experiment to be run
-    fs = 2000 # Hz in time
-    t = 100 # 1000s of data
-    N = int(fs*t) # length of virtual recording in samples
-    L = 40 # 40 samples MUAP, roughly corresponding to 20ms
+    # ## Experiment to be run
+    # fs = 2000 # Hz in time
+    # t = 100 # 1000s of data
+    # N = int(fs*t) # length of virtual recording in samples
+    # L = 40 # 40 samples MUAP, roughly corresponding to 20ms
 
-    # Run desired simulation with different parameters
-    data = [] # where to store each run
+    # # Run desired simulation with different parameters
+    # data = [] # where to store each run
 
-    for run in tqdm(range(1, 11)):
-        print('Run #{}...'.format(run)) 
-        for K in tqdm([1, 10, 40, 100]):
-            print('For K = {}...'.format(K))
-            for M in np.arange(10, 61, 10):
-                for J in np.arange(10, 61, 10):
+    # for run in tqdm(range(1, 11)):
+    #     print('Run #{}...'.format(run)) 
+    #     for K in tqdm([1, 10, 40, 100]):
+    #         print('For K = {}...'.format(K))
+    #         for M in np.arange(10, 61, 10):
+    #             for J in np.arange(10, 61, 10):
 
-                    # Obtain singular values
-                    MUAPs = generate_MUAPs(M, J, L) 
-                    H = get_mixing_matrix(MUAPs, K=K)
-                    _, sigmas,_ = np.linalg.svd(H)
-                    eigs = sigmas ** 2 # square singular vals to get eigenvalues
-                    eigs = eigs / np.sum(eigs)
+    #                 # Obtain singular values
+    #                 MUAPs = generate_MUAPs(M, J, L) 
+    #                 H = get_mixing_matrix(MUAPs, K=K)
+    #                 _, sigmas,_ = np.linalg.svd(H)
+    #                 eigs = sigmas ** 2 # square singular vals to get eigenvalues
+    #                 eigs = eigs / np.sum(eigs)
 
-                    # Obtain exponential fit and threshold crossing eigenvalues
-                    x = np.arange(1, len(eigs) + 1)
-                    y = eigs
-                    popt, pcov = curve_fit(exponent, x, y)
+    #                 # Obtain exponential fit and threshold crossing eigenvalues
+    #                 x = np.arange(1, len(eigs) + 1)
+    #                 y = eigs
+    #                 popt, pcov = curve_fit(exponent, x, y)
 
-                    eig1 =  eigen_cutoff(eigs, thrs=0.95) # accounting for 95% explained variance
-                    eig2 = eigen_cutoff(eigs, thrs=0.99) # accounting for 99% explained variance
+    #                 eig1 =  eigen_cutoff(eigs, thrs=0.95) # accounting for 95% explained variance
+    #                 eig2 = eigen_cutoff(eigs, thrs=0.99) # accounting for 99% explained variance
 
-                    data.append([run, K, M, J, popt[0], popt[1], eig1, eig2])
+    #                 data.append([run, K, M, J, popt[0], popt[1], eig1, eig2])
     
-    columns = ['Run', 'K', 'M', 'J', 'a', 'b', 'eig1', 'eig2']
-    df = pd.DataFrame(data=data, columns=columns) # store simulation results in a dataframe
-    df.to_csv('sims.csv')
+    # columns = ['Run', 'K', 'M', 'J', 'a', 'b', 'eig1', 'eig2']
+    # df = pd.DataFrame(data=data, columns=columns) # store simulation results in a dataframe
+    # df.to_csv('sims.csv')
 
-    # # Graphing functionalities
-    # df = pd.read_csv('sims.csv')
-    # df['M'] = df['M'].astype(int)
-    # df['J'] = df['J'].astype(int)
-    # plt.figure()
-    # sns.barplot(df[df['K'] == 1], x='J', y='eig2', hue='M')
-    # plt.show()
+    # Graphing functionalities
+    df = pd.read_csv('sims.csv')
+    df['M'] = df['M'].astype(int)
+    df['J'] = df['J'].astype(int)
+    df_ind = pd.read_csv('sims_independent.csv')
+    df_ind['M'] = df_ind['M'].astype(int)
+    df_ind['J'] = df_ind['J'].astype(int)
+    
+    fig, axs = plt.subplots(2, 1)
+    sns.barplot(df[df['K'] == 1], x='J', y='eig2', hue='M', ax=axs[0])
+    sns.barplot(df_ind[df_ind['K'] == 1], x='J', y='eig2', hue='M', ax=axs[1])
+    plt.show()
 
     # # Plotting altogether across K after averaging across runs and #MUs
     # df = df.groupby(['M', 'K', 'J'], as_index=False)['eig2'].mean() 
-    # plt.figure()
-    # sns.barplot(df[df['J'] == 40], x='K', y='eig2', hue='M')
+    # fig, axs = plt.subplots(2, 1)
+    # sns.barplot(df[df['J'] == 40], x='K', y='eig2', hue='M', ax=axs[0])
+    # sns.barplot(df_ind[df_ind['J'] == 40], x='K', y='eig2', hue='M', ax=axs[1])
     # plt.title('Evaluating the effect of the extension factor')
     # plt.show()
 
-    # # Normalizing scales by diving number of eigenvalues by K*M
-    # df['eig2'] = df['eig2'] / (df['K']*df['M'])
-    # plt.figure()
-    # sns.barplot(df[df['J'] == 10], x='K', y='eig2', hue='M')
-    # plt.title('Evaluating the effect of the extension factor (normalized)')
-    # plt.show()
+    # Normalizing scales by diving number of eigenvalues by K*M
+    J = 40
+    df['eig2'] = df['eig2'] / (df['K']*df['M'])
+    df_ind['eig2'] = df_ind['eig2'] / (df_ind['K']*df_ind['M'])
+    fig, axs = plt.subplots(2, 1)
+    plt.title('Evaluating the effect of the extension factor (J={})'.format(J))
+    sns.barplot(df[df['J'] == J], x='K', y='eig2', hue='M', ax=axs[0])
+    sns.barplot(df_ind[df_ind['J'] == J], x='K', y='eig2', hue='M', ax=axs[1])
+    plt.show()
 
 
 
