@@ -1,0 +1,3 @@
+# Experiment description
+- Generated MUAPs either from white gaussian noise or from sinusoids of different frequencies (highly correlated if freqs are close)
+- Sweep across M,K,J space, and compute eigen cutoffs of H
